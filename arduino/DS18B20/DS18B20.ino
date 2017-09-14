@@ -34,10 +34,10 @@ void loop(void)
     /********************************************************************/
     Serial.print(which_line, "DEC");
     Serial.print("=");
-    Serial.print(sensors.getTempCByIndex(0)); // Why "byIndex"?  
+    Serial.print(sensors.getTempCByIndex(which_line)); // Why "byIndex"?  
       // You can have more than one DS18B20 on the same bus.  
       // 0 refers to the first IC on the wire 
     Serial.println("");
-    delay(200);
+    delay(10);
   }
 }
