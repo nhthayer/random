@@ -43,6 +43,7 @@ if __name__ == '__main__':
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
     
     import tkinter as Tk
+    import time
 
     ## Create tk root object
     root = Tk.Tk()
@@ -60,15 +61,17 @@ if __name__ == '__main__':
         root.quit()     # stops mainloop
         root.destroy()
 
-    hlt_temps=[]
-    mash_temps=[]
-    boil_temps=[]
 
     def update_temp():
+        global hlt_temps, mash_temps, boil_temps
         print('Updating plot...')
-        hlt_current_temp = sensor.get_temperature('HLT')
-        mash_current_temp = sensor.get_temperature('Mash')
-        boil_current_temp = sensor.get_temperature('Boil')
+        if len(hlt_temps)==0:
+            hlt_temps = [(time.time(), sensor.get_temperature('HLT'))]*5
+            mash_temps = [(time.time(), sensor.get_temperature('Mash'))]*5
+            boil_temps = [(time.time(), sensor.get_temperature('Boil'))]*5
+        hlt_current_temp = (time.time(), sensor.get_temperature('HLT'))
+        mash_current_temp = (time.time(), sensor.get_temperature('Mash'))
+        boil_current_temp = (time.time(), sensor.get_temperature('Boil'))
         hlt_temps.append(hlt_current_temp)
         mash_temps.append(mash_current_temp)
         boil_temps.append(boil_current_temp)
@@ -77,7 +80,6 @@ if __name__ == '__main__':
         ax[0, 1].cla()
         ax[1, 0].cla()
 
-
         ax[0, 0].set_xlim(0, 120)
         ax[0, 1].set_xlim(0, 120)
         ax[1, 0].set_xlim(0, 120)
@@ -85,22 +87,34 @@ if __name__ == '__main__':
         ax[0, 0].set_xticks([])
         ax[0, 1].set_xticks([])
         ax[1, 0].set_xticks([])
-
-        ax[0, 0].set_title('HLT Temp Probe')
-        ax[0, 1].set_title('Mash Temp Probe')
-        ax[1, 0].set_title('Boil Temp Probe')
         
-        ax[0, 0].plot(hlt_temps[-100:])
-        ax[0, 1].plot(mash_temps[-100:])
-        ax[1, 0].plot(boil_temps[-100:])
+        ax[0, 0].plot([i[1] for i in hlt_temps[-100:]])
+        ax[0, 1].plot([i[1] for i in mash_temps[-100:]])
+        ax[1, 0].plot([i[1] for i in boil_temps[-100:]])
+        
+        tmp_slope1 = (60*(hlt_temps[-1][1]-hlt_temps[-4][1])/
+            (hlt_temps[-1][0]-hlt_temps[-4][0]))
+        tmp_slope2 = (60*(mash_temps[-1][1]-mash_temps[-4][1])/
+            (mash_temps[-1][0]-mash_temps[-4][0]))
+        tmp_slope3 = (60*(boil_temps[-1][1]-boil_temps[-4][1])/
+            (boil_temps[-1][0]-boil_temps[-4][0]))
+        
+        ax[0, 0].set_title('HLT %.2f C (%.2f F) ∆/T %.2f C/min'\
+                % (hlt_temps[-1][1], (hlt_temps[-1][1]*9/5+32), tmp_slope1))
+        ax[0, 1].set_title('Mash %.2f C (%.2f F) ∆/T %.2f C/min'\
+                % (mash_temps[-1][1], (mash_temps[-1][1]*9/5+32), tmp_slope2))
+        ax[1, 0].set_title('Boil %.2f C (%.2f F) ∆/T %.2f C/min'\
+                % (boil_temps[-1][1], (boil_temps[-1][1]*9/5+32), tmp_slope3)) 
         canvas.show()
-        
         root.after(10, update_temp)
-    
+
     button = Tk.Button(master=root, text='Quit', command=_quit)
     button.pack(side=Tk.BOTTOM)
 
     sensor = temperature_controller('/dev/cu.usbmodem1411', verbose=False)
+    hlt_temps = []
+    mash_temps = []
+    boil_temps = []
 
     root.after(10, update_temp)
     Tk.mainloop()
